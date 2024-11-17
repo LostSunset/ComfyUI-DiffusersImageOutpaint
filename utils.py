@@ -8,10 +8,11 @@ from PIL import Image
 
 from folder_paths import map_legacy, folder_names_and_paths
 from .controlnet_union import ControlNetModel_Union
-from .pipeline_fill_sd_xl import encode_prompt, StableDiffusionXLFillPipeline
+from .pipeline_fill_sd_xl import StableDiffusionXLFillPipeline
 from diffusers import AutoencoderKL, TCDScheduler
 from diffusers.models.model_loading_utils import load_state_dict
 from transformers import CLIPTextModel, CLIPTextModelWithProjection, CLIPTokenizer
+from diffusers import UNet2DConditionModel
 
 
 def get_first_folder_list(folder_name: str) -> tuple[list[str], dict[str, float], float]:
@@ -94,22 +95,6 @@ def clearVram(device):
     # torch.ipc_collect() not available, and ipc_collect seems available only for cuda
 
 
-def encodeDiffOutpaintPrompt(model_path, dtype, final_prompt, device):    
-    tokenizer, tokenizer_2, text_encoder, text_encoder_2 = loadDiffModels1(model_path, dtype, device)
-
-    (prompt_embeds,
-     negative_prompt_embeds,
-     pooled_prompt_embeds,
-     negative_pooled_prompt_embeds,
-    ) = encode_prompt(final_prompt, tokenizer, tokenizer_2, text_encoder, text_encoder_2, device, True)
-    
-    del tokenizer, tokenizer_2, text_encoder, text_encoder_2
-    
-    clearVram(device)
-
-    return prompt_embeds, negative_prompt_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds
-
-
 def loadControlnetModel(device, dtype, controlnet_path):
     config_file = f"{controlnet_path}/config_promax.json"
     config = ControlNetModel_Union.load_config(config_file)
@@ -144,21 +129,26 @@ def loadVaeModel(vae_path, device, dtype, enable_vae_slicing, enable_vae_tiling)
     return vae
 
 
+def loadUnetModel(model_path, device, dtype):
+    unet = UNet2DConditionModel.from_pretrained(model_path, subfolder="unet", use_safetensors=True)
+    unet.to(device, dtype)
+    return unet
+
+
 def diffuserOutpaintSamples(model_path, controlnet_model, diffuser_outpaint_cnet_image, dtype, controlnet_path, 
                             prompt_embeds, negative_prompt_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds, 
                             device, steps, controlnet_strength, guidance_scale, 
                             keep_model_device):
     
     controlnet_model = loadControlnetModel(device, dtype, controlnet_path)
-    
+    unet = loadUnetModel(model_path, device, dtype)
+                                
     with open(f"{model_path}/scheduler/scheduler_config.json", "r") as f:
         scheduler_config = json.load(f)
     scheduler = TCDScheduler.from_config(scheduler_config)
     
-    pipe = StableDiffusionXLFillPipeline.from_pretrained(
-        model_path,
-        torch_dtype=dtype,
-        variant="fp16",
+    pipe = StableDiffusionXLFillPipeline(
+        unet,
         scheduler=scheduler,
     )
     if not keep_model_device:
@@ -179,6 +169,7 @@ def diffuserOutpaintSamples(model_path, controlnet_model, diffuser_outpaint_cnet
             controlnet_conditioning_scale=controlnet_strength,
             guidance_scale=guidance_scale,
             device=device,
+            dtype=dtype,
             keep_model_device=keep_model_device,
         ))
     
