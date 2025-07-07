@@ -2,7 +2,7 @@ ComfyUI nodes for outpainting images with diffusers, based on [diffusers-image-o
 
 ![image](https://github.com/user-attachments/assets/1a02c2d1-f24e-4ad2-acdc-a2cbb15a1f14)
 
-Now also catalogued on [plugin.aix.ink](https://plugin.aix.ink/)! The site is mostly chinese, but it is convenient to consult this and many other extensions from a single, simple catalog. Other infos [here](https://github.com/GiusTex/ComfyUI-DiffusersImageOutpaint/blob/plugins-catalog/plugin-aix-ink.md). You can find this extension on the catalogue [here](https://plugin.aix.ink/archives/post-1751544763-4e2e3a).
+Now also catalogued on [plugin.aix.ink](https://plugin.aix.ink/)! The site is mostly chinese, but it is convenient to consult this and many other extensions from a single, simple catalog. Other infos [here](https://github.com/GiusTex/ComfyUI-DiffusersImageOutpaint/blob/main/plugin-aix-ink.md). You can find this extension on the catalogue [here](https://plugin.aix.ink/archives/post-1751544763-4e2e3a).
 
 #### Updates:
 - 15/05/2025: Fixed `missing 'loaded_keys'` error. More details below.
